@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">ApiRestFull</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/login">Iniciar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height:80vh;">
+    <div class="card shadow p-4" style="max-width: 380px; width:100%;">
+        <h2 class="text-center mb-4">Registro de Usuario</h2>
+        <form action="/registro" method="post">
+            <div class="mb-3">
+                <input type="text" class="form-control" name="username" placeholder="Usuario" required>
+            </div>
+            <div class="mb-3">
+                <input type="password" class="form-control" name="password" placeholder="Contraseña" required>
+            </div>
+            <button type="submit" class="btn btn-success w-100">Registrarse</button>
+        </form>
+        <p class="text-center mt-3 mb-0">¿Ya tienes una cuenta? <a href="/login">Inicia Sesión</a></p>
+    </div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container">
+    <div id="appToast" class="toast align-items-center text-bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div id="toastMsg" class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showToast(msg, type='info'){
+        const t = document.getElementById('appToast');
+        const body = document.getElementById('toastMsg');
+        ['text-bg-success','text-bg-danger','text-bg-info','text-bg-warning'].forEach(c=>t.classList.remove(c));
+        t.classList.add('text-bg-' + type);
+        body.textContent = msg;
+        new bootstrap.Toast(t, { delay: 3000 }).show();
+    }
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('error') === 'usuario_existente') showToast('El usuario ya existe, prueba con otro.', 'danger');
+</script>
+</body>
+</html>

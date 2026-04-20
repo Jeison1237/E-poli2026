@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Carrito</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/productos">ApiRestFull</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Productos</a></li>
+                <li class="nav-item"><a href="/carrito" class="nav-link active">🛒 Carrito <span id="contadorCarrito" class="badge bg-success">0</span></a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-3">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+    <h1 class="h3 mb-3">Carrito de Compras</h1>
+
+    <div class="card shadow p-3">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="tablaCarrito"></tbody>
+            </table>
+        </div>
+        <div id="carritoVacio" class="empty-state d-none">
+            <p class="mb-0">Tu carrito está vacío. Agrega productos desde la lista.</p>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary" href="/productos">Seguir comprando</a>
+                <button class="btn btn-outline-danger" onclick="vaciarCarrito()">Vaciar carrito</button>
+            </div>
+            <div class="text-end">
+                <h4>Total: $<span id="totalCarrito">0.00</span></h4>
+                <button id="btnFinalizar" class="btn btn-success mt-2" onclick="finalizarCompra()">Finalizar Compra</button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Toasts -->
+<div class="toast-container">
+    <div id="appToast" class="toast align-items-center text-bg-info border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div id="toastMsg" class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const API_URL = '/api/productos';
+    let carrito = JSON.parse(localStorage.getItem("carrito")) || [];
+
+    function showToast(msg, type='info'){
+        const t = document.getElementById('appToast');
+        const body = document.getElementById('toastMsg');
+        ['text-bg-success','text-bg-danger','text-bg-info','text-bg-warning'].forEach(c=>t.classList.remove(c));
+        t.classList.add('text-bg-' + type);
+        body.textContent = msg;
+        new bootstrap.Toast(t, { delay: 2500 }).show();
+    }
+
+    function guardarCarrito() { localStorage.setItem("carrito", JSON.stringify(carrito)); }
+    function actualizarContador() {
+        const total = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+        const badge = document.getElementById("contadorCarrito");
+        if (badge) badge.innerText = total;
+    }
+
+    async function sincronizarStock() {
+        try {
+            const resp = await fetch(API_URL);
+            if (!resp.ok) return;
+            const productos = await resp.json();
+            const map = new Map(productos.map(p => [p.id, p]));
+            let cambiado = false;
+            carrito.forEach(item => {
+                const prod = map.get(item.id);
+                const nuevoStock = prod ? (prod.cantidad ?? 0) : 0;
+                if (item.stock !== nuevoStock) {
+                    item.stock = nuevoStock;
+                    if (item.cantidad > nuevoStock) { item.cantidad = nuevoStock; cambiado = true; }
+                }
+            });
+            if (cambiado) guardarCarrito();
+        } catch (e) {
+            console.warn('No se pudo sincronizar stock:', e);
+        }
+    }
+
+    function incrementarCantidad(id) {
+        const item = carrito.find(i => i.id === id);
+        if (!item) return;
+        const stock = Number.isFinite(item.stock) ? item.stock : 999999;
+        if (item.cantidad + 1 > stock) { showToast('Has alcanzado el stock disponible', 'warning'); return; }
+        item.cantidad++;
+        guardarCarrito();
+        renderCarrito();
+    }
+
+    function decrementarCantidad(id) {
+        const item = carrito.find(i => i.id === id);
+        if (item) {
+            item.cantidad--;
+            if (item.cantidad <= 0) {
+                carrito = carrito.filter(i => i.id !== id);
+                showToast('Producto eliminado del carrito','info');
+            }
+            guardarCarrito();
+            renderCarrito();
+        }
+    }
+
+    function quitarItem(id) {
+        carrito = carrito.filter(i => i.id !== id);
+        guardarCarrito();
+        renderCarrito();
+        showToast('Producto eliminado del carrito','info');
+    }
+
+    function vaciarCarrito() {
+        if (confirm("¿Seguro que deseas vaciar el carrito?")) {
+            carrito = [];
+            guardarCarrito();
+            renderCarrito();
+            showToast('Carrito vaciado','info');
+        }
+    }
+
+    async function finalizarCompra() {
+        if (carrito.length === 0) { showToast('Tu carrito está vacío','warning'); return; }
+        const btn = document.getElementById("btnFinalizar");
+        btn.disabled = true; btn.innerText = "Procesando...";
+        try {
+            const payload = carrito.map(i => ({ id: i.id, cantidad: i.cantidad }));
+            const resp = await fetch(API_URL + '/compra', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!resp.ok) { const txt = await resp.text(); showToast('No se pudo completar: ' + txt, 'danger'); return; }
+            carrito = []; guardarCarrito();
+            showToast('¡Compra realizada con éxito!', 'success');
+            setTimeout(()=> window.location.href = '/productos', 600);
+        } catch (e) {
+            console.error(e); showToast('Error al procesar la compra','danger');
+        } finally {
+            btn.disabled = false; btn.innerText = "Finalizar Compra"; renderCarrito();
+        }
+    }
+
+    function renderCarrito() {
+        let filas = ""; let total = 0; let count = 0;
+        carrito.forEach(item => {
+            const precio = parseFloat(item.precio) || 0;
+            const cantidad = parseInt(item.cantidad) || 0;
+            const stock = Number.isFinite(item.stock) ? item.stock : 999999;
+            const reached = cantidad >= stock;
+            const subtotal = precio * cantidad;
+            total += subtotal; count += cantidad;
+            filas += `
+                <tr>
+                    <td>${item.nombre}</td>
+                    <td class="price">${precio.toFixed(2)}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="decrementarCantidad(${item.id})">−</button>
+                            <span class="px-2 align-self-center">${cantidad}</span>
+                            <button class="btn btn-sm btn-outline-secondary" ${reached ? 'disabled title="Sin más stock"' : ''} onclick="incrementarCantidad(${item.id})">+</button>
+                        </div>
+                        <small class="text-muted ms-2">Stock: ${Number.isFinite(item.stock) ? stock : '—'}</small>
+                    </td>
+                    <td class="price">${subtotal.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="quitarItem(${item.id})">Quitar</button>
+                    </td>
+                </tr>`;
+        });
+        document.getElementById("tablaCarrito").innerHTML = filas;
+        document.getElementById("totalCarrito").innerText = total.toFixed(2);
+        document.getElementById("carritoVacio").classList.toggle('d-none', carrito.length !== 0);
+        document.getElementById("btnFinalizar").disabled = carrito.length === 0;
+        actualizarContador();
+    }
+
+    (async function init(){ await sincronizarStock(); renderCarrito(); })();
+</script>
+
+</body>
+</html>
