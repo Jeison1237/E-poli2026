@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Órdenes - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">🛍️ E-Commerce Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Ver Tienda</a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-2">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="d-flex">
+    <nav class="sidebar bg-dark text-white" style="min-width:250px; min-height:100vh; padding:20px">
+        <h5>Panel Admin</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item mb-2">
+                <a href="/admin" class="nav-link text-white">📊 Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/productos" class="nav-link text-white">📦 Productos</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/ordenes" class="nav-link text-white active">📋 Órdenes</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/usuarios" class="nav-link text-white">👥 Usuarios</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/reportes" class="nav-link text-white">📈 Reportes</a>
+            </li>
+            <li class="nav-item mt-4">
+                <a href="/logout" class="nav-link text-danger">🚪 Salir</a>
+            </li>
+        </ul>
+    </nav>
+    
+    <main class="flex-grow-1 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Gestión de Órdenes</h1>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success btn-sm" onclick="exportarOrdenes()">📊 Exportar</button>
+                <button class="btn btn-primary btn-sm" onclick="cargarOrdenes()">🔄 Actualizar</button>
+            </div>
+        </div>
+        
+        <!-- Estadísticas rápidas -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <h4 id="ordensPendientes" class="text-warning">0</h4>
+                        <small>Pendientes</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <h4 id="ordensProcesando" class="text-info">0</h4>
+                        <small>Procesando</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h4 id="ordensEnviadas" class="text-primary">0</h4>
+                        <small>Enviadas</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h4 id="ordensEntregadas" class="text-success">0</h4>
+                        <small>Entregadas</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <select id="filtroEstado" class="form-select">
+                            <option value="">Todos los estados</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="PROCESANDO">Procesando</option>
+                            <option value="ENVIADO">Enviado</option>
+                            <option value="ENTREGADO">Entregado</option>
+                            <option value="CANCELADO">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" id="fechaDesde" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" id="fechaHasta" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                            Limpiar Filtros
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabla de órdenes -->
+        <div class="card">
+            <div class="card-body">
+                <div id="loadingOrdenes" class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Cargando órdenes...</p>
+                </div>
+                
+                <div id="tablaOrdenes" style="display: none;">
+                    <!-- La tabla se llenará con JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal para cambiar estado -->
+<div class="modal fade" id="modalEstado" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cambiar Estado de Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEstado">
+                    <input type="hidden" id="ordenId">
+                    <div class="mb-3">
+                        <label class="form-label">Orden #<span id="ordenNumero"></span></label>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo Estado</label>
+                        <select id="nuevoEstado" class="form-select" required>
+                            <option value="">Seleccionar estado</option>
+                            <option value="PENDIENTE">Pendiente</option>
+                            <option value="PROCESANDO">Procesando</option>
+                            <option value="ENVIADO">Enviado</option>
+                            <option value="ENTREGADO">Entregado</option>
+                            <option value="CANCELADO">Cancelado</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formEstado" class="btn btn-primary">Actualizar Estado</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles -->
+<div class="modal fade" id="modalDetalles" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de la Orden</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBodyDetalles">
+                <!-- Se llenará con JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let ordenes = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarOrdenes();
+    configurarEventos();
+});
+
+function configurarEventos() {
+    document.getElementById('filtroEstado').addEventListener('change', aplicarFiltros);
+    document.getElementById('fechaDesde').addEventListener('change', aplicarFiltros);
+    document.getElementById('fechaHasta').addEventListener('change', aplicarFiltros);
+    document.getElementById('formEstado').addEventListener('submit', actualizarEstado);
+}
+
+async function cargarOrdenes() {
+    try {
+        const response = await fetch('/api/ordenes');
+        if (response.ok) {
+            ordenes = await response.json();
+            mostrarOrdenes(ordenes);
+            actualizarEstadisticas();
+        } else {
+            mostrarError('Error al cargar órdenes');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión');
+    } finally {
+        document.getElementById('loadingOrdenes').style.display = 'none';
+        document.getElementById('tablaOrdenes').style.display = 'block';
+    }
+}
+
+function mostrarOrdenes(listaOrdenes) {
+    const container = document.getElementById('tablaOrdenes');
+    
+    if (listaOrdenes.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted py-4">No hay órdenes para mostrar</p>';
+        return;
+    }
+    
+    const tabla = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${listaOrdenes.map(orden => {
+                        const fecha = new Date(orden.fecha).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        const estadoClass = getEstadoClass(orden.estado);
+                        
+                        return `
+                            <tr>
+                                <td class="fw-bold">#${orden.id}</td>
+                                <td>Usuario ${orden.usuarioId}</td>
+                                <td>
+                                    <div>Producto ID: ${orden.productoId}</div>
+                                    <small class="text-muted">Ver detalles para más info</small>
+                                </td>
+                                <td>${orden.cantidad}</td>
+                                <td class="fw-bold text-success">$${(orden.total || 0).toFixed(2)}</td>
+                                <td>
+                                    <span class="badge ${estadoClass}">${orden.estado}</span>
+                                </td>
+                                <td>
+                                    <div>${fecha}</div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="verDetalles(${orden.id})" title="Ver detalles">
+                                            👁️
+                                        </button>
+                                        <button class="btn btn-outline-warning" onclick="cambiarEstado(${orden.id})" title="Cambiar estado">
+                                            ✏️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = tabla;
+}
+
+function actualizarEstadisticas() {
+    const stats = {
+        PENDIENTE: 0,
+        PROCESANDO: 0,
+        ENVIADO: 0,
+        ENTREGADO: 0
+    };
+    
+    ordenes.forEach(orden => {
+        if (stats.hasOwnProperty(orden.estado)) {
+            stats[orden.estado]++;
+        }
+    });
+    
+    document.getElementById('ordensPendientes').textContent = stats.PENDIENTE;
+    document.getElementById('ordensProcesando').textContent = stats.PROCESANDO;
+    document.getElementById('ordensEnviadas').textContent = stats.ENVIADO;
+    document.getElementById('ordensEntregadas').textContent = stats.ENTREGADO;
+}
+
+function aplicarFiltros() {
+    const estado = document.getElementById('filtroEstado').value;
+    const fechaDesde = document.getElementById('fechaDesde').value;
+    const fechaHasta = document.getElementById('fechaHasta').value;
+    
+    let ordenesFiltradas = ordenes.filter(orden => {
+        // Filtro por estado
+        if (estado && orden.estado !== estado) {
+            return false;
+        }
+        
+        // Filtro por fecha
+        if (fechaDesde || fechaHasta) {
+            const fechaOrden = new Date(orden.fecha).toISOString().split('T')[0];
+            
+            if (fechaDesde && fechaOrden < fechaDesde) {
+                return false;
+            }
+            
+            if (fechaHasta && fechaOrden > fechaHasta) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    mostrarOrdenes(ordenesFiltradas);
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroEstado').value = '';
+    document.getElementById('fechaDesde').value = '';
+    document.getElementById('fechaHasta').value = '';
+    mostrarOrdenes(ordenes);
+}
+
+async function verDetalles(ordenId) {
+    try {
+        const response = await fetch(`/api/ordenes/${ordenId}`);
+        if (response.ok) {
+            const orden = await response.json();
+            await mostrarDetallesOrden(orden);
+            new bootstrap.Modal(document.getElementById('modalDetalles')).show();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al cargar detalles');
+    }
+}
+
+async function mostrarDetallesOrden(orden) {
+    const modalBody = document.getElementById('modalBodyDetalles');
+    
+    // Cargar información del producto y usuario
+    let producto = null;
+    let usuario = null;
+    
+    try {
+        const [prodResponse, userResponse] = await Promise.all([
+            fetch(`/api/productos/${orden.productoId}`),
+            fetch(`/api/usuarios/${orden.usuarioId}`)
+        ]);
+        
+        if (prodResponse.ok) producto = await prodResponse.json();
+        if (userResponse.ok) usuario = await userResponse.json();
+    } catch (error) {
+        console.error('Error loading details:', error);
+    }
+    
+    const fecha = new Date(orden.fecha).toLocaleString('es-ES');
+    
+    modalBody.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>Información de la Orden</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>ID:</strong></td><td>#${orden.id}</td></tr>
+                    <tr><td><strong>Estado:</strong></td><td><span class="badge ${getEstadoClass(orden.estado)}">${orden.estado}</span></td></tr>
+                    <tr><td><strong>Fecha:</strong></td><td>${fecha}</td></tr>
+                    <tr><td><strong>Total:</strong></td><td class="text-success fw-bold">$${(orden.total || 0).toFixed(2)}</td></tr>
+                    <tr><td><strong>Cantidad:</strong></td><td>${orden.cantidad}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>Cliente</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>ID Usuario:</strong></td><td>${orden.usuarioId}</td></tr>
+                    <tr><td><strong>Nombre:</strong></td><td>${usuario ? usuario.username : 'No disponible'}</td></tr>
+                    <tr><td><strong>Email:</strong></td><td>${usuario ? usuario.email : 'No disponible'}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <div class="row">
+            <div class="col-12">
+                <h6>Producto</h6>
+                <div class="d-flex align-items-center">
+                    <img src="${producto ? (producto.imagen || 'https://via.placeholder.com/80') : 'https://via.placeholder.com/80'}" 
+                         alt="Producto" class="me-3 rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                    <div>
+                        <div class="fw-bold">${producto ? producto.nombre : `Producto ID: ${orden.productoId}`}</div>
+                        <div class="text-muted">${producto ? (producto.descripcion || 'Sin descripción') : 'Información no disponible'}</div>
+                        <div class="text-muted">Categoría: ${producto ? (producto.categoria || 'Sin categoría') : 'N/A'}</div>
+                        <div class="text-success fw-bold">Precio: $${producto ? producto.precio.toFixed(2) : '0.00'}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function cambiarEstado(ordenId) {
+    const orden = ordenes.find(o => o.id === ordenId);
+    if (!orden) return;
+    
+    document.getElementById('ordenId').value = ordenId;
+    document.getElementById('ordenNumero').textContent = ordenId;
+    document.getElementById('nuevoEstado').value = orden.estado;
+    
+    new bootstrap.Modal(document.getElementById('modalEstado')).show();
+}
+
+async function actualizarEstado(event) {
+    event.preventDefault();
+    
+    const ordenId = document.getElementById('ordenId').value;
+    const nuevoEstado = document.getElementById('nuevoEstado').value;
+    
+    try {
+        const response = await fetch(`/api/ordenes/${ordenId}/estado`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalEstado')).hide();
+            await cargarOrdenes();
+            mostrarNotificacion('Estado actualizado exitosamente', 'success');
+        } else {
+            mostrarNotificacion('Error al actualizar estado', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'danger');
+    }
+}
+
+function exportarOrdenes() {
+    const csvContent = "data:text/csv;charset=utf-8," +
+        "ID,Usuario,Producto,Cantidad,Total,Estado,Fecha\n" +
+        ordenes.map(orden => {
+            const fecha = new Date(orden.fecha).toLocaleDateString('es-ES');
+            return `${orden.id},${orden.usuarioId},${orden.productoId},${orden.cantidad},"$${(orden.total || 0).toFixed(2)}",${orden.estado},${fecha}`;
+        }).join("\n");
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `ordenes_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function getEstadoClass(estado) {
+    switch (estado) {
+        case 'PENDIENTE': return 'bg-warning';
+        case 'PROCESANDO': return 'bg-info';
+        case 'ENVIADO': return 'bg-primary';
+        case 'ENTREGADO': return 'bg-success';
+        case 'CANCELADO': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function mostrarError(mensaje) {
+    document.getElementById('tablaOrdenes').innerHTML = 
+        `<div class="alert alert-danger text-center">${mensaje}</div>`;
+}
+
+function mostrarNotificacion(mensaje, tipo) {
+    const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+    const alerta = document.createElement('div');
+    alerta.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    alerta.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+    alerta.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alerta);
+    
+    setTimeout(() => {
+        if (alerta.parentNode) {
+            alerta.parentNode.removeChild(alerta);
+        }
+    }, 5000);
+}
+</script>
+</body>
+</html>

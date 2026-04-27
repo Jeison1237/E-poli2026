@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Usuarios - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">🛍️ E-Commerce Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Ver Tienda</a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-2">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="d-flex">
+    <nav class="sidebar bg-dark text-white" style="min-width:250px; min-height:100vh; padding:20px">
+        <h5>Panel Admin</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item mb-2">
+                <a href="/admin" class="nav-link text-white">📊 Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/productos" class="nav-link text-white">📦 Productos</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/ordenes" class="nav-link text-white">📋 Órdenes</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/usuarios" class="nav-link text-white active">👥 Usuarios</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/reportes" class="nav-link text-white">📈 Reportes</a>
+            </li>
+            <li class="nav-item mt-4">
+                <a href="/logout" class="nav-link text-danger">🚪 Salir</a>
+            </li>
+        </ul>
+    </nav>
+    
+    <main class="flex-grow-1 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Gestión de Usuarios</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalUsuario">
+                + Nuevo Usuario
+            </button>
+        </div>
+        
+        <!-- Estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <h4 id="totalUsuarios" class="text-primary">0</h4>
+                        <small>Total Usuarios</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <h4 id="totalAdmins" class="text-warning">0</h4>
+                        <small>Administradores</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <h4 id="usuariosRegulares" class="text-success">0</h4>
+                        <small>Usuarios Regulares</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filtros -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" id="buscarUsuario" class="form-control" placeholder="Buscar por nombre o email...">
+                    </div>
+                    <div class="col-md-3">
+                        <select id="filtroRol" class="form-select">
+                            <option value="">Todos los roles</option>
+                            <option value="ADMIN">Administradores</option>
+                            <option value="USER">Usuarios</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select id="ordenar" class="form-select">
+                            <option value="id">Ordenar por ID</option>
+                            <option value="username">Ordenar por Usuario</option>
+                            <option value="email">Ordenar por Email</option>
+                            <option value="rol">Ordenar por Rol</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="limpiarFiltros()">
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tabla de usuarios -->
+        <div class="card">
+            <div class="card-body">
+                <div id="loadingUsuarios" class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                    <p class="mt-2">Cargando usuarios...</p>
+                </div>
+                
+                <div id="tablaUsuarios" style="display: none;">
+                    <!-- La tabla se llenará con JavaScript -->
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal para crear/editar usuario -->
+<div class="modal fade" id="modalUsuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Nuevo Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formUsuario">
+                    <input type="hidden" id="usuarioId">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de Usuario *</label>
+                        <input type="text" id="username" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico *</label>
+                        <input type="email" id="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña *</label>
+                        <input type="password" id="password" class="form-control" required>
+                        <div class="form-text" id="passwordHelp">
+                            Para editar: dejar en blanco para mantener la contraseña actual
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Confirmar Contraseña *</label>
+                        <input type="password" id="confirmarPassword" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Rol</label>
+                        <select id="rol" class="form-select" required>
+                            <option value="">Seleccionar rol</option>
+                            <option value="USER">Usuario</option>
+                            <option value="ADMIN">Administrador</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formUsuario" class="btn btn-primary">
+                    Guardar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver actividad del usuario -->
+<div class="modal fade" id="modalActividad" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Actividad del Usuario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBodyActividad">
+                <!-- Se llenará con JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let usuarios = [];
+let usuarioEditando = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarUsuarios();
+    configurarEventos();
+});
+
+function configurarEventos() {
+    document.getElementById('buscarUsuario').addEventListener('input', aplicarFiltros);
+    document.getElementById('filtroRol').addEventListener('change', aplicarFiltros);
+    document.getElementById('ordenar').addEventListener('change', aplicarFiltros);
+    document.getElementById('formUsuario').addEventListener('submit', guardarUsuario);
+    document.getElementById('modalUsuario').addEventListener('hidden.bs.modal', limpiarFormulario);
+}
+
+async function cargarUsuarios() {
+    try {
+        const response = await fetch('/api/usuarios');
+        if (response.ok) {
+            usuarios = await response.json();
+            mostrarUsuarios(usuarios);
+            actualizarEstadisticas();
+        } else {
+            mostrarError('Error al cargar usuarios');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión');
+    } finally {
+        document.getElementById('loadingUsuarios').style.display = 'none';
+        document.getElementById('tablaUsuarios').style.display = 'block';
+    }
+}
+
+function mostrarUsuarios(listaUsuarios) {
+    const container = document.getElementById('tablaUsuarios');
+    
+    if (listaUsuarios.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted py-4">No hay usuarios para mostrar</p>';
+        return;
+    }
+    
+    const tabla = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Avatar</th>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Rol</th>
+                        <th>Actividad</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${listaUsuarios.map(usuario => {
+                        const rolClass = usuario.rol === 'ADMIN' ? 'bg-warning' : 'bg-success';
+                        const avatar = usuario.username.charAt(0).toUpperCase();
+                        
+                        return `
+                            <tr>
+                                <td>${usuario.id}</td>
+                                <td>
+                                    <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center text-white fw-bold" 
+                                         style="width: 40px; height: 40px;">
+                                        ${avatar}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">${usuario.username}</div>
+                                    <small class="text-muted">ID: ${usuario.id}</small>
+                                </td>
+                                <td>${usuario.email}</td>
+                                <td>
+                                    <span class="badge ${rolClass}">${usuario.rol || 'USER'}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm" onclick="verActividad(${usuario.id})">
+                                        Ver Órdenes
+                                    </button>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editarUsuario(${usuario.id})" title="Editar">
+                                            ✏️
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="eliminarUsuario(${usuario.id})" title="Eliminar">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = tabla;
+}
+
+function actualizarEstadisticas() {
+    const total = usuarios.length;
+    const admins = usuarios.filter(u => u.rol === 'ADMIN').length;
+    const regulares = usuarios.filter(u => u.rol !== 'ADMIN').length;
+    
+    document.getElementById('totalUsuarios').textContent = total;
+    document.getElementById('totalAdmins').textContent = admins;
+    document.getElementById('usuariosRegulares').textContent = regulares;
+}
+
+function aplicarFiltros() {
+    const buscar = document.getElementById('buscarUsuario').value.toLowerCase();
+    const rol = document.getElementById('filtroRol').value;
+    const orden = document.getElementById('ordenar').value;
+    
+    let usuariosFiltrados = usuarios.filter(usuario => {
+        // Filtro por búsqueda
+        if (buscar && !usuario.username.toLowerCase().includes(buscar) && 
+            !usuario.email.toLowerCase().includes(buscar)) {
+            return false;
+        }
+        
+        // Filtro por rol
+        if (rol && (usuario.rol || 'USER') !== rol) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Ordenar
+    usuariosFiltrados.sort((a, b) => {
+        switch (orden) {
+            case 'username':
+                return a.username.localeCompare(b.username);
+            case 'email':
+                return a.email.localeCompare(b.email);
+            case 'rol':
+                return (a.rol || 'USER').localeCompare(b.rol || 'USER');
+            default:
+                return a.id - b.id;
+        }
+    });
+    
+    mostrarUsuarios(usuariosFiltrados);
+}
+
+function limpiarFiltros() {
+    document.getElementById('buscarUsuario').value = '';
+    document.getElementById('filtroRol').value = '';
+    document.getElementById('ordenar').value = 'id';
+    mostrarUsuarios(usuarios);
+}
+
+function nuevoUsuario() {
+    usuarioEditando = null;
+    document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+    document.getElementById('passwordHelp').style.display = 'none';
+    document.getElementById('password').required = true;
+    document.getElementById('confirmarPassword').required = true;
+    limpiarFormulario();
+    new bootstrap.Modal(document.getElementById('modalUsuario')).show();
+}
+
+function editarUsuario(id) {
+    usuarioEditando = usuarios.find(u => u.id === id);
+    if (!usuarioEditando) return;
+    
+    document.getElementById('modalTitle').textContent = 'Editar Usuario';
+    document.getElementById('passwordHelp').style.display = 'block';
+    document.getElementById('password').required = false;
+    document.getElementById('confirmarPassword').required = false;
+    
+    document.getElementById('usuarioId').value = usuarioEditando.id;
+    document.getElementById('username').value = usuarioEditando.username;
+    document.getElementById('email').value = usuarioEditando.email;
+    document.getElementById('password').value = '';
+    document.getElementById('confirmarPassword').value = '';
+    document.getElementById('rol').value = usuarioEditando.rol || 'USER';
+    
+    new bootstrap.Modal(document.getElementById('modalUsuario')).show();
+}
+
+async function guardarUsuario(event) {
+    event.preventDefault();
+    
+    const password = document.getElementById('password').value;
+    const confirmarPassword = document.getElementById('confirmarPassword').value;
+    
+    // Validar contraseñas si se proporcionaron
+    if (password && password !== confirmarPassword) {
+        alert('Las contraseñas no coinciden');
+        return;
+    }
+    
+    // Si es nuevo usuario, la contraseña es requerida
+    if (!usuarioEditando && !password) {
+        alert('La contraseña es requerida para nuevos usuarios');
+        return;
+    }
+    
+    const usuario = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        rol: document.getElementById('rol').value
+    };
+    
+    // Solo incluir password si se proporcionó
+    if (password) {
+        usuario.password = password;
+    }
+    
+    try {
+        let response;
+        if (usuarioEditando) {
+            response = await fetch(`/api/usuarios/${usuarioEditando.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(usuario)
+            });
+        } else {
+            response = await fetch('/api/usuarios/registro', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(usuario)
+            });
+        }
+        
+        if (response.ok) {
+            bootstrap.Modal.getInstance(document.getElementById('modalUsuario')).hide();
+            await cargarUsuarios();
+            mostrarNotificacion('Usuario guardado exitosamente', 'success');
+        } else {
+            const errorText = await response.text();
+            mostrarNotificacion(`Error al guardar usuario: ${errorText}`, 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'danger');
+    }
+}
+
+async function eliminarUsuario(id) {
+    const usuario = usuarios.find(u => u.id === id);
+    if (!usuario) return;
+    
+    if (!confirm(`¿Estás seguro de que deseas eliminar al usuario "${usuario.username}"?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/usuarios/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await cargarUsuarios();
+            mostrarNotificacion('Usuario eliminado exitosamente', 'success');
+        } else {
+            mostrarNotificacion('Error al eliminar usuario', 'danger');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'danger');
+    }
+}
+
+async function verActividad(usuarioId) {
+    try {
+        const response = await fetch(`/api/ordenes/usuario/${usuarioId}`);
+        
+        if (response.ok) {
+            const ordenes = await response.json();
+            mostrarActividad(ordenes, usuarioId);
+            new bootstrap.Modal(document.getElementById('modalActividad')).show();
+        } else {
+            alert('Error al cargar la actividad del usuario');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión');
+    }
+}
+
+function mostrarActividad(ordenes, usuarioId) {
+    const modalBody = document.getElementById('modalBodyActividad');
+    const usuario = usuarios.find(u => u.id === usuarioId);
+    
+    const totalOrdenes = ordenes.length;
+    const totalGastado = ordenes.reduce((sum, orden) => sum + (orden.total || 0), 0);
+    
+    const html = `
+        <div class="mb-4">
+            <h6>Usuario: ${usuario ? usuario.username : `ID ${usuarioId}`}</h6>
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="border rounded p-2">
+                        <h4 class="text-primary">${totalOrdenes}</h4>
+                        <small>Total Órdenes</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="border rounded p-2">
+                        <h4 class="text-success">$${totalGastado.toFixed(2)}</h4>
+                        <small>Total Gastado</small>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="border rounded p-2">
+                        <h4 class="text-info">${totalOrdenes > 0 ? (totalGastado / totalOrdenes).toFixed(2) : '0.00'}</h4>
+                        <small>Promedio por Orden</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        ${ordenes.length === 0 ? 
+            '<p class="text-muted text-center">Este usuario no ha realizado ninguna compra.</p>' :
+            `<div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Producto</th>
+                            <th>Cantidad</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ordenes.map(orden => {
+                            const fecha = new Date(orden.fecha).toLocaleDateString('es-ES');
+                            const estadoClass = getEstadoClass(orden.estado);
+                            return `
+                                <tr>
+                                    <td>#${orden.id}</td>
+                                    <td>Producto ${orden.productoId}</td>
+                                    <td>${orden.cantidad}</td>
+                                    <td class="text-success">$${(orden.total || 0).toFixed(2)}</td>
+                                    <td><span class="badge ${estadoClass}">${orden.estado}</span></td>
+                                    <td>${fecha}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>`
+        }
+    `;
+    
+    modalBody.innerHTML = html;
+}
+
+function getEstadoClass(estado) {
+    switch (estado) {
+        case 'PENDIENTE': return 'bg-warning';
+        case 'PROCESANDO': return 'bg-info';
+        case 'ENVIADO': return 'bg-primary';
+        case 'ENTREGADO': return 'bg-success';
+        case 'CANCELADO': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+
+function limpiarFormulario() {
+    document.getElementById('formUsuario').reset();
+    document.getElementById('usuarioId').value = '';
+}
+
+function mostrarError(mensaje) {
+    document.getElementById('tablaUsuarios').innerHTML = 
+        `<div class="alert alert-danger text-center">${mensaje}</div>`;
+}
+
+function mostrarNotificacion(mensaje, tipo) {
+    const alertClass = tipo === 'success' ? 'alert-success' : 'alert-danger';
+    const alerta = document.createElement('div');
+    alerta.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
+    alerta.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+    alerta.innerHTML = `
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alerta);
+    
+    setTimeout(() => {
+        if (alerta.parentNode) {
+            alerta.parentNode.removeChild(alerta);
+        }
+    }, 5000);
+}
+
+// Agregar evento al botón de nuevo usuario en la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Buscar el botón de nuevo usuario y agregale el evento
+    const btnNuevo = document.querySelector('[data-bs-target="#modalUsuario"]');
+    if (btnNuevo) {
+        btnNuevo.addEventListener('click', nuevoUsuario);
+    }
+});
+</script>
+</body>
+</html>
