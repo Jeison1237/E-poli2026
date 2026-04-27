@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Administración - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">🛍️ E-Commerce Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Ver Tienda</a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-2">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="d-flex">
+    <nav class="sidebar bg-dark text-white" style="min-width:250px; min-height:100vh; padding:20px">
+        <h5>Panel Admin</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item mb-2">
+                <a href="/admin" class="nav-link text-white active">
+                    📊 Dashboard
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/productos" class="nav-link text-white">
+                    📦 Productos
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/ordenes" class="nav-link text-white">
+                    📋 Órdenes
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/usuarios" class="nav-link text-white">
+                    👥 Usuarios
+                </a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/reportes" class="nav-link text-white">
+                    📈 Reportes
+                </a>
+            </li>
+            <li class="nav-item mt-4">
+                <a href="/logout" class="nav-link text-danger">
+                    🚪 Salir
+                </a>
+            </li>
+        </ul>
+    </nav>
+    
+    <main class="flex-grow-1 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Dashboard Administrativo</h1>
+            <div class="text-muted">
+                <span id="fechaActual"></span>
+            </div>
+        </div>
+        
+        <!-- Tarjetas de estadísticas -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-primary">📦</div>
+                        <h3 id="totalProductos" class="mt-2">0</h3>
+                        <p class="text-muted mb-0">Total Productos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-success">📋</div>
+                        <h3 id="totalOrdenes" class="mt-2">0</h3>
+                        <p class="text-muted mb-0">Total Órdenes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-info">👥</div>
+                        <h3 id="totalUsuarios" class="mt-2">0</h3>
+                        <p class="text-muted mb-0">Total Usuarios</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-warning">💰</div>
+                        <h3 id="totalVentas" class="mt-2">$0.00</h3>
+                        <p class="text-muted mb-0">Total Ventas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráficos y resúmenes -->
+        <div class="row">
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Órdenes Recientes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingOrdenes" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm" role="status"></div>
+                            Cargando órdenes...
+                        </div>
+                        <div id="tablaOrdenesRecientes" style="display: none;">
+                            <!-- Se llenará con JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Estados de Órdenes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="estadosOrdenes">
+                            <!-- Se llenará con JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Productos con Bajo Stock</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="productosBajoStock">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm" role="status"></div>
+                                Cargando productos...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Acciones Rápidas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a href="/admin/productos" class="btn btn-primary">
+                                Gestionar Productos
+                            </a>
+                            <a href="/admin/ordenes" class="btn btn-success">
+                                Ver Todas las Órdenes
+                            </a>
+                            <a href="/admin/usuarios" class="btn btn-info">
+                                Gestionar Usuarios
+                            </a>
+                            <a href="/admin/reportes" class="btn btn-warning">
+                                Ver Reportes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    mostrarFechaActual();
+    cargarDashboard();
+});
+
+function mostrarFechaActual() {
+    const ahora = new Date();
+    const fecha = ahora.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    document.getElementById('fechaActual').textContent = fecha;
+}
+
+async function cargarDashboard() {
+    try {
+        await Promise.all([
+            cargarEstadisticas(),
+            cargarOrdenesRecientes(),
+            cargarProductosBajoStock()
+        ]);
+    } catch (error) {
+        console.error('Error cargando dashboard:', error);
+    }
+}
+
+async function cargarEstadisticas() {
+    try {
+        // Cargar productos
+        const productosResponse = await fetch('/api/productos');
+        const productos = productosResponse.ok ? await productosResponse.json() : [];
+        
+        // Cargar órdenes
+        const ordenesResponse = await fetch('/api/ordenes');
+        const ordenes = ordenesResponse.ok ? await ordenesResponse.json() : [];
+        
+        // Cargar usuarios
+        const usuariosResponse = await fetch('/api/usuarios');
+        const usuarios = usuariosResponse.ok ? await usuariosResponse.json() : [];
+        
+        // Calcular estadísticas
+        const totalProductos = productos.length;
+        const totalOrdenes = ordenes.length;
+        const totalUsuarios = usuarios.length;
+        const totalVentas = ordenes.reduce((sum, orden) => sum + (orden.total || 0), 0);
+        
+        // Mostrar estadísticas
+        document.getElementById('totalProductos').textContent = totalProductos;
+        document.getElementById('totalOrdenes').textContent = totalOrdenes;
+        document.getElementById('totalUsuarios').textContent = totalUsuarios;
+        document.getElementById('totalVentas').textContent = `$${totalVentas.toFixed(2)}`;
+        
+        // Mostrar estados de órdenes
+        mostrarEstadosOrdenes(ordenes);
+        
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
+
+async function cargarOrdenesRecientes() {
+    try {
+        const response = await fetch('/api/ordenes');
+        if (response.ok) {
+            const ordenes = await response.json();
+            const ordenesRecientes = ordenes.slice(0, 5); // Top 5 más recientes
+            mostrarOrdenesRecientes(ordenesRecientes);
+        }
+        document.getElementById('loadingOrdenes').style.display = 'none';
+        document.getElementById('tablaOrdenesRecientes').style.display = 'block';
+    } catch (error) {
+        console.error('Error cargando órdenes:', error);
+        document.getElementById('loadingOrdenes').innerHTML = '<div class="text-danger">Error cargando órdenes</div>';
+    }
+}
+
+function mostrarOrdenesRecientes(ordenes) {
+    const container = document.getElementById('tablaOrdenesRecientes');
+    
+    if (ordenes.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No hay órdenes recientes</p>';
+        return;
+    }
+    
+    const tabla = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Usuario</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${ordenes.map(orden => {
+                        const fecha = new Date(orden.fecha).toLocaleDateString('es-ES');
+                        const estadoClass = getEstadoClass(orden.estado);
+                        return `
+                            <tr>
+                                <td>#${orden.id}</td>
+                                <td>Usuario ${orden.usuarioId}</td>
+                                <td class="text-success">$${(orden.total || 0).toFixed(2)}</td>
+                                <td><span class="badge ${estadoClass}">${orden.estado}</span></td>
+                                <td>${fecha}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = tabla;
+}
+
+function mostrarEstadosOrdenes(ordenes) {
+    const estados = {};
+    ordenes.forEach(orden => {
+        estados[orden.estado] = (estados[orden.estado] || 0) + 1;
+    });
+    
+    const container = document.getElementById('estadosOrdenes');
+    const html = Object.entries(estados).map(([estado, cantidad]) => {
+        const porcentaje = ordenes.length > 0 ? (cantidad / ordenes.length * 100).toFixed(1) : 0;
+        const estadoClass = getEstadoClass(estado);
+        
+        return `
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="badge ${estadoClass}">${estado}</span>
+                <span class="fw-bold">${cantidad} (${porcentaje}%)</span>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html || '<p class="text-muted">Sin órdenes</p>';
+}
+
+async function cargarProductosBajoStock() {
+    try {
+        const response = await fetch('/api/productos');
+        if (response.ok) {
+            const productos = await response.json();
+            const productosBajo = productos.filter(p => (p.stock || p.cantidad || 0) < 10);
+            mostrarProductosBajoStock(productosBajo);
+        }
+    } catch (error) {
+        console.error('Error cargando productos:', error);
+        document.getElementById('productosBajoStock').innerHTML = '<div class="text-danger">Error cargando productos</div>';
+    }
+}
+
+function mostrarProductosBajoStock(productos) {
+    const container = document.getElementById('productosBajoStock');
+    
+    if (productos.length === 0) {
+        container.innerHTML = '<p class="text-success text-center">✓ Todos los productos tienen stock suficiente</p>';
+        return;
+    }
+    
+    const html = productos.map(producto => {
+        const stock = producto.stock || producto.cantidad || 0;
+        return `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                <div>
+                    <div class="fw-bold">${producto.nombre}</div>
+                    <small class="text-muted">ID: ${producto.id}</small>
+                </div>
+                <span class="badge bg-danger">${stock} unidades</span>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = html;
+}
+
+function getEstadoClass(estado) {
+    switch (estado) {
+        case 'PENDIENTE': return 'bg-warning';
+        case 'PROCESANDO': return 'bg-info';
+        case 'ENVIADO': return 'bg-primary';
+        case 'ENTREGADO': return 'bg-success';
+        case 'CANCELADO': return 'bg-danger';
+        default: return 'bg-secondary';
+    }
+}
+</script>
+</body>
+</html>

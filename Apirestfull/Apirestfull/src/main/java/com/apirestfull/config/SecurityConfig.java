@@ -21,17 +21,22 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/", "/login", "/registro", "/css/**", "/js/**").permitAll() // Permite acceso público a la página de registro
-                        .anyRequest().authenticated() // Requiere autenticación para cualquier otra URL
+                        // Public access
+                        .requestMatchers("/", "/login", "/registro", "/productos", "/api/productos/**", "/css/**", "/js/**", "/images/**").permitAll()
+                        // Admin only
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Authenticated users only
+                        .requestMatchers("/carrito", "/checkout", "/mis-ordenes", "/perfil", "/detalle-producto/**").authenticated()
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/productos", true) // Redirige a los productos después de un login exitoso
+                        .defaultSuccessUrl("/productos", true)
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
-                        .logoutSuccessUrl("/login?logout") // Redirige a la página de login con un parámetro
+                        .logoutSuccessUrl("/login?logout")
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID")
                         .permitAll()

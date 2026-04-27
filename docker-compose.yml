@@ -1,0 +1,121 @@
+version: '3.8'
+services:
+  mysql-usuarios:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: Jeison2270854
+      MYSQL_DATABASE: db_usuarios
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_usuarios_data:/var/lib/mysql
+  
+  mysql-productos:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: Jeison2270854
+      MYSQL_DATABASE: db_productos
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_productos_data:/var/lib/mysql
+  
+  mysql-gateway:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: Jeison2270854
+      MYSQL_DATABASE: demo_db
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_gateway_data:/var/lib/mysql
+  
+  postgres-ordenes:
+    image: postgres:15
+    environment:
+      POSTGRES_PASSWORD: Jeison2270854
+      POSTGRES_DB: db_ordenes
+      POSTGRES_USER: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_ordenes_data:/var/lib/postgresql/data
+  
+  eureka-server:
+    build: ./Eureka-server/EurekaServer
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8761/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  
+  user-service:
+    build: ./User-Service
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql-usuarios:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-usuarios:3306/db_usuarios
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+    restart: on-failure
+  
+  product-service:
+    build: ./Product-Service
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql-productos:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-productos:3306/db_productos
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+    restart: on-failure
+  
+  order-service:
+    build: ./Order-Service
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres-ordenes:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-ordenes:5432/db_ordenes
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+    restart: on-failure
+  
+  apirestfull:
+    build: ./Apirestfull/Apirestfull
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql-gateway:
+        condition: service_started
+      eureka-server:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-gateway:3306/demo_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+    restart: on-failure
+
+volumes:
+  mysql_usuarios_data:
+  mysql_productos_data:
+  mysql_gateway_data:
+  postgres_ordenes_data:

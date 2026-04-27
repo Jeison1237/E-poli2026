@@ -3,7 +3,7 @@ package com.apirestfull.Controller;
 import com.apirestfull.Model.Producto;
 import com.apirestfull.client.OrderClient;
 import com.apirestfull.client.ProductClient;
-import com.apirestfull.model.Order;
+import com.apirestfull.Model.Order;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -38,8 +38,11 @@ public class ProductController {
         return productoRepository.findById(id)
                 .map(producto -> {
                     producto.setNombre(productoDetails.getNombre());
+                    producto.setDescripcion(productoDetails.getDescripcion());
                     producto.setPrecio(productoDetails.getPrecio());
-                    producto.setCantidad(productoDetails.getCantidad());
+                    producto.setStock(productoDetails.getStock());
+                    producto.setImagen(productoDetails.getImagen());
+                    producto.setCategoria(productoDetails.getCategoria());
                     return ResponseEntity.ok(productoRepository.save(producto));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -73,10 +76,10 @@ public class ProductController {
             if (producto == null) {
                 return ResponseEntity.badRequest().body("Producto no encontrado: id=" + item.getId());
             }
-            if (producto.getCantidad() < item.getCantidad()) {
+            if (producto.getStock() < item.getCantidad()) {
                 return ResponseEntity.badRequest().body("Stock insuficiente para " + producto.getNombre());
             }
-            producto.setCantidad(producto.getCantidad() - item.getCantidad());
+            producto.setStock(producto.getStock() - item.getCantidad());
             productoRepository.save(producto);
         }
         return ResponseEntity.ok().build();

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reportes y Análisis - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">🛍️ E-Commerce Admin</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Ver Tienda</a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-2">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="d-flex">
+    <nav class="sidebar bg-dark text-white" style="min-width:250px; min-height:100vh; padding:20px">
+        <h5>Panel Admin</h5>
+        <ul class="nav flex-column">
+            <li class="nav-item mb-2">
+                <a href="/admin" class="nav-link text-white">📊 Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/productos" class="nav-link text-white">📦 Productos</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/ordenes" class="nav-link text-white">📋 Órdenes</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/usuarios" class="nav-link text-white">👥 Usuarios</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="/admin/reportes" class="nav-link text-white active">📈 Reportes</a>
+            </li>
+            <li class="nav-item mt-4">
+                <a href="/logout" class="nav-link text-danger">🚪 Salir</a>
+            </li>
+        </ul>
+    </nav>
+    
+    <main class="flex-grow-1 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3 mb-0">Reportes y Análisis</h1>
+            <div class="d-flex gap-2">
+                <select id="periodoReporte" class="form-select" style="width: auto;">
+                    <option value="7">Últimos 7 días</option>
+                    <option value="30">Últimos 30 días</option>
+                    <option value="90">Últimos 3 meses</option>
+                    <option value="365">Último año</option>
+                </select>
+                <button class="btn btn-success" onclick="exportarReporte()">📊 Exportar</button>
+            </div>
+        </div>
+        
+        <!-- KPIs principales -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-success">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-success">💰</div>
+                        <h3 id="totalVentas" class="mt-2 text-success">$0.00</h3>
+                        <p class="text-muted mb-0">Ventas Totales</p>
+                        <small id="ventasComparacion" class="text-muted"></small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-primary">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-primary">📦</div>
+                        <h3 id="totalOrdenes" class="mt-2 text-primary">0</h3>
+                        <p class="text-muted mb-0">Órdenes Totales</p>
+                        <small id="ordenesComparacion" class="text-muted"></small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-info">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-info">📊</div>
+                        <h3 id="promedioOrden" class="mt-2 text-info">$0.00</h3>
+                        <p class="text-muted mb-0">Promedio por Orden</p>
+                        <small id="promedioComparacion" class="text-muted"></small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="card border-warning">
+                    <div class="card-body text-center">
+                        <div class="display-6 text-warning">👥</div>
+                        <h3 id="clientesActivos" class="mt-2 text-warning">0</h3>
+                        <p class="text-muted mb-0">Clientes Únicos</p>
+                        <small id="clientesComparacion" class="text-muted"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Gráficos -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Tendencia de Ventas</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartVentas" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Estados de Órdenes</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartEstados" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Productos Más Vendidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartProductos" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Categorías Más Populares</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartCategorias" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tablas de datos -->
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Top Clientes</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="tablaTopClientes">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm"></div> Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Productos con Bajo Stock</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="tablaBajoStock">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm"></div> Cargando...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let datosReporte = {
+    ordenes: [],
+    productos: [],
+    usuarios: []
+};
+
+let charts = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarDatos();
+    document.getElementById('periodoReporte').addEventListener('change', generarReporte);
+});
+
+async function cargarDatos() {
+    try {
+        const [ordenesRes, productosRes, usuariosRes] = await Promise.all([
+            fetch('/api/ordenes'),
+            fetch('/api/productos'),
+            fetch('/api/usuarios')
+        ]);
+        
+        datosReporte.ordenes = ordenesRes.ok ? await ordenesRes.json() : [];
+        datosReporte.productos = productosRes.ok ? await productosRes.json() : [];
+        datosReporte.usuarios = usuariosRes.ok ? await usuariosRes.json() : [];
+        
+        generarReporte();
+    } catch (error) {
+        console.error('Error cargando datos:', error);
+        mostrarError('Error al cargar los datos del reporte');
+    }
+}
+
+function generarReporte() {
+    const periodo = parseInt(document.getElementById('periodoReporte').value);
+    const fechaLimite = new Date();
+    fechaLimite.setDate(fechaLimite.getDate() - periodo);
+    
+    // Filtrar órdenes por periodo
+    const ordenesFiltradas = datosReporte.ordenes.filter(orden => 
+        new Date(orden.fecha) >= fechaLimite
+    );
+    
+    calcularKPIs(ordenesFiltradas);
+    generarGraficos(ordenesFiltradas);
+    generarTablas(ordenesFiltradas);
+}
+
+function calcularKPIs(ordenes) {
+    const totalVentas = ordenes.reduce((sum, orden) => sum + (orden.total || 0), 0);
+    const totalOrdenes = ordenes.length;
+    const promedioOrden = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
+    const clientesUnicos = new Set(ordenes.map(o => o.usuarioId)).size;
+    
+    document.getElementById('totalVentas').textContent = `$${totalVentas.toFixed(2)}`;
+    document.getElementById('totalOrdenes').textContent = totalOrdenes;
+    document.getElementById('promedioOrden').textContent = `$${promedioOrden.toFixed(2)}`;
+    document.getElementById('clientesActivos').textContent = clientesUnicos;
+    
+    // Comparaciones simples (podrían mejorarse con datos históricos reales)
+    document.getElementById('ventasComparacion').textContent = totalVentas > 1000 ? '↑ Excelente' : '→ En desarrollo';
+    document.getElementById('ordenesComparacion').textContent = totalOrdenes > 10 ? '↑ Creciendo' : '→ Iniciando';
+    document.getElementById('promedioComparacion').textContent = promedioOrden > 50 ? '↑ Buen ticket' : '→ Mejorable';
+    document.getElementById('clientesComparacion').textContent = clientesUnicos > 5 ? '↑ Diverso' : '→ Enfoque';
+}
+
+function generarGraficos(ordenes) {
+    generarGraficoVentas(ordenes);
+    generarGraficoEstados(ordenes);
+    generarGraficoProductos(ordenes);
+    generarGraficoCategorias(ordenes);
+}
+
+function generarGraficoVentas(ordenes) {
+    const ctx = document.getElementById('chartVentas').getContext('2d');
+    
+    // Agrupar ventas por día
+    const ventasPorDia = {};
+    ordenes.forEach(orden => {
+        const fecha = new Date(orden.fecha).toISOString().split('T')[0];
+        ventasPorDia[fecha] = (ventasPorDia[fecha] || 0) + (orden.total || 0);
+    });
+    
+    const fechas = Object.keys(ventasPorDia).sort();
+    const ventas = fechas.map(fecha => ventasPorDia[fecha]);
+    
+    if (charts.ventas) charts.ventas.destroy();
+    
+    charts.ventas = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: fechas.map(f => new Date(f).toLocaleDateString('es-ES')),
+            datasets: [{
+                label: 'Ventas Diarias',
+                data: ventas,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function generarGraficoEstados(ordenes) {
+    const ctx = document.getElementById('chartEstados').getContext('2d');
+    
+    const estados = {};
+    ordenes.forEach(orden => {
+        estados[orden.estado] = (estados[orden.estado] || 0) + 1;
+    });
+    
+    const colores = {
+        'PENDIENTE': '#ffc107',
+        'PROCESANDO': '#17a2b8',
+        'ENVIADO': '#007bff',
+        'ENTREGADO': '#28a745',
+        'CANCELADO': '#dc3545'
+    };
+    
+    if (charts.estados) charts.estados.destroy();
+    
+    charts.estados = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(estados),
+            datasets: [{
+                data: Object.values(estados),
+                backgroundColor: Object.keys(estados).map(estado => colores[estado] || '#6c757d')
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function generarGraficoProductos(ordenes) {
+    const ctx = document.getElementById('chartProductos').getContext('2d');
+    
+    // Contar productos vendidos
+    const productoVendidos = {};
+    ordenes.forEach(orden => {
+        const prodId = orden.productoId;
+        productoVendidos[prodId] = (productoVendidos[prodId] || 0) + orden.cantidad;
+    });
+    
+    // Top 5 productos
+    const topProductos = Object.entries(productoVendidos)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5);
+    
+    const labels = topProductos.map(([id, cantidad]) => {
+        const producto = datosReporte.productos.find(p => p.id == id);
+        return producto ? producto.nombre : `Producto ${id}`;
+    });
+    
+    if (charts.productos) charts.productos.destroy();
+    
+    charts.productos = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Cantidad Vendida',
+                data: topProductos.map(([,cantidad]) => cantidad),
+                backgroundColor: '#28a745'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function generarGraficoCategorias(ordenes) {
+    const ctx = document.getElementById('chartCategorias').getContext('2d');
+    
+    // Contar por categoría
+    const categorias = {};
+    ordenes.forEach(orden => {
+        const producto = datosReporte.productos.find(p => p.id == orden.productoId);
+        const categoria = producto ? (producto.categoria || 'Sin categoría') : 'Sin categoría';
+        categorias[categoria] = (categorias[categoria] || 0) + orden.cantidad;
+    });
+    
+    if (charts.categorias) charts.categorias.destroy();
+    
+    charts.categorias = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(categorias),
+            datasets: [{
+                data: Object.values(categorias),
+                backgroundColor: [
+                    '#007bff', '#28a745', '#ffc107', '#dc3545', '#6f42c1', 
+                    '#fd7e14', '#20c997', '#e83e8c', '#6c757d', '#17a2b8'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function generarTablas(ordenes) {
+    generarTablaTopClientes(ordenes);
+    generarTablaBajoStock();
+}
+
+function generarTablaTopClientes(ordenes) {
+    const container = document.getElementById('tablaTopClientes');
+    
+    // Agrupar por cliente
+    const clienteVentas = {};
+    ordenes.forEach(orden => {
+        const userId = orden.usuarioId;
+        if (!clienteVentas[userId]) {
+            clienteVentas[userId] = {
+                totalGastado: 0,
+                totalOrdenes: 0
+            };
+        }
+        clienteVentas[userId].totalGastado += orden.total || 0;
+        clienteVentas[userId].totalOrdenes += 1;
+    });
+    
+    // Top 5 clientes
+    const topClientes = Object.entries(clienteVentas)
+        .sort(([,a], [,b]) => b.totalGastado - a.totalGastado)
+        .slice(0, 5);
+    
+    if (topClientes.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">No hay datos de clientes</p>';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Órdenes</th>
+                        <th>Total Gastado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${topClientes.map(([userId, datos]) => {
+                        const usuario = datosReporte.usuarios.find(u => u.id == userId);
+                        return `
+                            <tr>
+                                <td>${usuario ? usuario.username : `Usuario ${userId}`}</td>
+                                <td>${datos.totalOrdenes}</td>
+                                <td class="text-success fw-bold">$${datos.totalGastado.toFixed(2)}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function generarTablaBajoStock() {
+    const container = document.getElementById('tablaBajoStock');
+    
+    const productosBajoStock = datosReporte.productos
+        .filter(p => (p.stock || p.cantidad || 0) < 10)
+        .sort((a, b) => (a.stock || a.cantidad || 0) - (b.stock || b.cantidad || 0))
+        .slice(0, 5);
+    
+    if (productosBajoStock.length === 0) {
+        container.innerHTML = '<p class="text-success text-center">✓ Todos los productos tienen stock suficiente</p>';
+        return;
+    }
+    
+    container.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${productosBajoStock.map(producto => {
+                        const stock = producto.stock || producto.cantidad || 0;
+                        const estado = stock === 0 ? 'Sin stock' : 'Stock bajo';
+                        const estadoClass = stock === 0 ? 'bg-danger' : 'bg-warning';
+                        
+                        return `
+                            <tr>
+                                <td class="fw-bold">${producto.nombre}</td>
+                                <td>${producto.categoria || 'Sin categoría'}</td>
+                                <td>${stock}</td>
+                                <td><span class="badge ${estadoClass}">${estado}</span></td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function exportarReporte() {
+    const periodo = document.getElementById('periodoReporte').value;
+    const fecha = new Date().toISOString().split('T')[0];
+    
+    // Datos básicos para CSV
+    const totalVentas = document.getElementById('totalVentas').textContent;
+    const totalOrdenes = document.getElementById('totalOrdenes').textContent;
+    const promedioOrden = document.getElementById('promedioOrden').textContent;
+    const clientesActivos = document.getElementById('clientesActivos').textContent;
+    
+    const csvContent = "data:text/csv;charset=utf-8," +
+        "Reporte E-Commerce\n" +
+        `Período: Últimos ${periodo} días\n` +
+        `Fecha: ${fecha}\n\n` +
+        "Métrica,Valor\n" +
+        `Total Ventas,${totalVentas}\n` +
+        `Total Órdenes,${totalOrdenes}\n` +
+        `Promedio por Orden,${promedioOrden}\n` +
+        `Clientes Únicos,${clientesActivos}\n`;
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `reporte_${fecha}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function mostrarError(mensaje) {
+    console.error(mensaje);
+    // Aquí podrías mostrar una notificación de error
+}
+</script>
+</body>
+</html>

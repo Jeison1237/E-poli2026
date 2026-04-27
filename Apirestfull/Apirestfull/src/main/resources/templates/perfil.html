@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Perfil - E-Commerce</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="/">🛍️ E-Commerce</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a href="/productos" class="nav-link">Productos</a></li>
+                <li class="nav-item"><a href="/carrito" class="nav-link">🛒 Carrito <span id="contadorCarrito" class="badge bg-success">0</span></a></li>
+                <li class="nav-item"><a href="/mis-ordenes" class="nav-link">Mis Pedidos</a></li>
+                <li class="nav-item"><a href="/perfil" class="nav-link active">Mi Perfil</a></li>
+                <li class="nav-item"><a href="/logout" class="btn btn-outline-danger ms-2">Cerrar Sesión</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-4">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px; font-size: 2rem; color: white;">
+                            👤
+                        </div>
+                    </div>
+                    <h5 id="displayUsername">Usuario</h5>
+                    <p class="text-muted" id="displayEmail">email@ejemplo.com</p>
+                    <span id="displayRol" class="badge bg-secondary">USER</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Información Personal</h5>
+                </div>
+                <div class="card-body">
+                    <form id="formPerfil">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nombre de Usuario</label>
+                                <input type="text" id="username" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Correo Electrónico</label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Rol</label>
+                            <input type="text" id="rol" class="form-control" disabled>
+                        </div>
+                        
+                        <hr>
+                        <h6>Cambiar Contraseña</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nueva Contraseña</label>
+                                <input type="password" id="nuevaPassword" class="form-control">
+                                <div class="form-text">Dejar en blanco para mantener la contraseña actual</div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Confirmar Contraseña</label>
+                                <input type="password" id="confirmarPassword" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                Guardar Cambios
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="cargarPerfil()">
+                                Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Estadísticas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="border-end">
+                                <h3 id="totalOrdenes" class="text-primary">0</h3>
+                                <p class="text-muted mb-0">Pedidos Totales</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border-end">
+                                <h3 id="totalGastado" class="text-success">$0.00</h3>
+                                <p class="text-muted mb-0">Total Gastado</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 id="ultimaCompra" class="text-info">-</h3>
+                            <p class="text-muted mb-0">Última Compra</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Toast de notificación -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastNotificacion" class="toast" role="alert">
+        <div class="toast-header">
+            <strong class="me-auto">Notificación</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+            Mensaje aquí
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+let usuario = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    cargarPerfil();
+    cargarEstadisticas();
+    actualizarContadorCarrito();
+    
+    document.getElementById('formPerfil').addEventListener('submit', guardarPerfil);
+});
+
+async function cargarPerfil() {
+    try {
+        // TODO: Obtener el ID del usuario logueado dinámicamente
+        const usuarioId = 1;
+        
+        const response = await fetch(`/api/usuarios/${usuarioId}`);
+        
+        if (response.ok) {
+            usuario = await response.json();
+            mostrarPerfil(usuario);
+        } else {
+            mostrarError('Error al cargar el perfil');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión');
+    }
+}
+
+function mostrarPerfil(user) {
+    document.getElementById('displayUsername').textContent = user.username;
+    document.getElementById('displayEmail').textContent = user.email;
+    document.getElementById('displayRol').textContent = user.rol || 'USER';
+    
+    document.getElementById('username').value = user.username;
+    document.getElementById('email').value = user.email;
+    document.getElementById('rol').value = user.rol || 'USER';
+    
+    // Limpiar campos de contraseña
+    document.getElementById('nuevaPassword').value = '';
+    document.getElementById('confirmarPassword').value = '';
+}
+
+async function cargarEstadisticas() {
+    try {
+        // TODO: Obtener el ID del usuario logueado dinámicamente
+        const usuarioId = 1;
+        
+        const response = await fetch(`/api/ordenes/usuario/${usuarioId}`);
+        
+        if (response.ok) {
+            const ordenes = await response.json();
+            mostrarEstadisticas(ordenes);
+        }
+    } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+    }
+}
+
+function mostrarEstadisticas(ordenes) {
+    const totalOrdenes = ordenes.length;
+    const totalGastado = ordenes.reduce((sum, orden) => sum + (orden.total || 0), 0);
+    
+    let ultimaCompra = '-';
+    if (ordenes.length > 0) {
+        const fechaUltima = new Date(Math.max(...ordenes.map(o => new Date(o.fecha))));
+        ultimaCompra = fechaUltima.toLocaleDateString('es-ES');
+    }
+    
+    document.getElementById('totalOrdenes').textContent = totalOrdenes;
+    document.getElementById('totalGastado').textContent = `$${totalGastado.toFixed(2)}`;
+    document.getElementById('ultimaCompra').textContent = ultimaCompra;
+}
+
+async function guardarPerfil(event) {
+    event.preventDefault();
+    
+    const nuevaPassword = document.getElementById('nuevaPassword').value;
+    const confirmarPassword = document.getElementById('confirmarPassword').value;
+    
+    // Validar contraseñas si se proporcionaron
+    if (nuevaPassword && nuevaPassword !== confirmarPassword) {
+        mostrarToast('Las contraseñas no coinciden', 'error');
+        return;
+    }
+    
+    const datosActualizados = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        rol: usuario.rol // Mantener el rol actual
+    };
+    
+    // Solo incluir password si se proporcionó
+    if (nuevaPassword) {
+        datosActualizados.password = nuevaPassword;
+    }
+    
+    try {
+        const response = await fetch(`/api/usuarios/${usuario.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(datosActualizados)
+        });
+        
+        if (response.ok) {
+            const usuarioActualizado = await response.json();
+            usuario = usuarioActualizado;
+            mostrarPerfil(usuario);
+            mostrarToast('Perfil actualizado correctamente', 'success');
+        } else {
+            mostrarToast('Error al actualizar el perfil', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarToast('Error de conexión', 'error');
+    }
+}
+
+function mostrarToast(mensaje, tipo) {
+    const toast = document.getElementById('toastNotificacion');
+    const toastBody = document.getElementById('toastMessage');
+    
+    toastBody.textContent = mensaje;
+    
+    // Cambiar color según el tipo
+    if (tipo === 'success') {
+        toast.className = 'toast border-success';
+    } else {
+        toast.className = 'toast border-danger';
+    }
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+function mostrarError(mensaje) {
+    mostrarToast(mensaje, 'error');
+}
+
+function actualizarContadorCarrito() {
+    const carrito = JSON.parse(localStorage.getItem('carrito') || '[]');
+    const total = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+    document.getElementById('contadorCarrito').textContent = total;
+}
+</script>
+</body>
+</html>
